@@ -1,0 +1,13 @@
+packages:
+  linux:
+    pip:
+      - pipx
+    pipx:
+      - package: ansible --include-deps
+        dependencies: ansible-lint molecule --include-apps
+      - jupyter --include-deps
+      - poetry
+      - black
+      - mypy
+      - yq
+

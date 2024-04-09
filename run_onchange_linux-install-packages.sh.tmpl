@@ -1,0 +1,20 @@
+{{ if eq .chezmoi.os "linux" -}}
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# install pip packages
+pip install --user {{ range .packages.linux.pip -}}{{ . }} {{ end }}
+
+# install apps via pipx
+{{ range .packages.linux.pipx -}}
+{{ if kindIs "map" . -}}
+pipx install {{ .package }}
+{{ if .dependencies -}}
+pipx inject {{ .package | splitList " " | first }} {{ .dependencies }}
+{{ end -}}
+{{- else -}}
+pipx install {{ . }}
+{{ end -}}
+{{ end -}}
+{{ end -}}
