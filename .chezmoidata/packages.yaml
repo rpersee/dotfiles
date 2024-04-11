@@ -1,13 +1,30 @@
-packages:
-  linux:
-    pip:
-      - pipx
-    pipx:
-      - package: ansible --include-deps
-        dependencies: ansible-lint molecule --include-apps
-      - jupyter --include-deps
-      - poetry
-      - black
-      - mypy
-      - yq
+python_apps:
+  - package: ansible
+    include_deps: package
+    dependencies: [ansible-lint, molecule]
+    include_apps: true
+  - package: jupyter
+    include_deps: true
+  - poetry
+  - black
+  - mypy
+  - yq
 
+helm_version: "3.14.4"
+jq_version: "1.7.1"
+kubectl_version: "{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}"
+terraform_version: "1.8.0"
+
+apps_binaries:
+  - name: jq
+    source: https://github.com/jqlang/jq/releases/download/jq-{{ jq_version }}/jq-linux-{{ dpkg_architecture }}
+  - name: kubectl
+    source: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/{{ dpkg_architecture }}/kubectl"
+
+apps_archives:
+  - name: helm
+    source: https://get.helm.sh/helm-v{{ helm_version }}-linux-{{ dpkg_architecture }}.tar.gz
+    include: ["linux-{{ dpkg_architecture }}/helm"]
+    strip_components: 1
+  - name: terraform
+    source: https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ dpkg_architecture }}.zip

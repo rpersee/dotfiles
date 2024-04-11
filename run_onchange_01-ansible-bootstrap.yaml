@@ -1,0 +1,70 @@
+#!/usr/bin/env -S "${CHEZMOI_SOURCE_DIR}/ensure_ansible.sh" ansible-playbook -i localhost, -c local -e ansible_python_interpreter="{{ ansible_playbook_python }}"
+---
+- name: Bootstrap
+  hosts: all
+  vars:
+    dpkg_architecture: "{{ _dpkg_architecture.stdout }}"
+    vars_files_dir: "{{ playbook_dir }}/.chezmoidata"
+  vars_files:
+    - "{{ vars_files_dir }}/packages.yaml"
+
+  tasks:
+    - name: Install pipx
+      ansible.builtin.pip:
+        name: pipx
+        extra_args: --user
+      tags: [ansible, python]
+
+    - name: Install Ansible
+      community.general.pipx:
+        name: ansible
+        install_deps: true
+        system_site_packages: true
+      tags: [never, ansible]
+
+    - name: Install Python apps with pipx
+      community.general.pipx:
+        name: "{{ item.package | default(item) }}"
+        install_deps: "{{ item.include_deps | default(omit) in ['package', true] }}"
+      loop: "{{ python_apps }}"
+      tags: [python]
+
+    - name: Inject Python apps dependencies
+      community.general.pipx:
+        name: "{{ item.package }}"
+        state: inject
+        inject_packages: "{{ item.dependencies }}"
+        install_apps: "{{ item.include_apps | default(omit) }}"
+        install_deps: "{{ item.include_deps | default(omit) in ['dependencies', true] }}"
+      loop: "{{ python_apps | selectattr('dependencies', 'defined') }}"
+      tags: [python]
+
+    - name: Determine system architecture
+      ansible.builtin.command: dpkg --print-architecture
+      register: _dpkg_architecture
+      changed_when: false
+      when: >-
+        ['archives', 'binaries'] | difference(ansible_skip_tags) | length > 0 or
+        ['archives', 'binaries'] | intersection(ansible_run_tags) | length > 0
+
+    - name: Install archives
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: "{{ item.source }}"
+        dest: "{{ ansible_env.HOME }}/.local/bin"
+        creates: "{{ ansible_env.HOME }}/.local/bin/{{ item.name }}"
+        include: "{{ item.include | default(omit) }}"
+        extra_opts: "{{ [strip_option] if should_strip else [] }}"
+      loop: "{{ apps_archives }}"
+      tags: [archives]
+      vars:
+        should_strip: "{{ item.strip_components | default(False) }}"
+        strip_option: "{{ '-j' if item.source.endswith('.zip') else '--strip-components=' ~ item.strip_components }}"
+
+    - name: Install binaries
+      ansible.builtin.get_url:
+        url: "{{ item.source }}"
+        dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.name }}"
+        mode: "0755"
+      loop: "{{ apps_binaries }}"
+      tags: [binaries]
