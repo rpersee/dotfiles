@@ -2,6 +2,11 @@
 
 set -euo pipefail
 
+# Ensure that ~/.local/bin is in the PATH
+if [[ "$PATH" != *"${HOME}/.local/bin"* ]]; then
+    export PATH="${PATH}:${HOME}/.local/bin"
+fi
+
 mktemp_venv() {
     if ! command -v python3 &>/dev/null; then
         echo "ERROR: Python 3 is not installed" >&2

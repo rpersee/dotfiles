@@ -6,7 +6,7 @@
   vars:
     dpkg_architecture: "{{ _dpkg_architecture.stdout }}"
     system_python_interpreter: "{{ _system_python.stdout }}"
-    vars_files_dir: "{{ playbook_dir }}/.chezmoidata"
+    vars_files_dir: "{{ lookup('env', 'CHEZMOI_SOURCE_DIR') }}/.chezmoidata"
   vars_files:
     - "{{ vars_files_dir }}/packages.yaml"
 
