@@ -16,15 +16,13 @@ kubectl_version: "{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}"
 terraform_version: "1.8.0"
 
 apps_binaries:
-  - name: jq
+  - executable: jq
     source: https://github.com/jqlang/jq/releases/download/jq-{{ jq_version }}/jq-linux-{{ dpkg_architecture }}
-  - name: kubectl
+  - executable: kubectl
     source: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/{{ dpkg_architecture }}/kubectl"
 
 apps_archives:
-  - name: helm
+  - executable: linux-{{ dpkg_architecture }}/helm
     source: https://get.helm.sh/helm-v{{ helm_version }}-linux-{{ dpkg_architecture }}.tar.gz
-    include: ["linux-{{ dpkg_architecture }}/helm"]
-    strip_components: 1
-  - name: terraform
+  - executable: terraform
     source: https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ dpkg_architecture }}.zip

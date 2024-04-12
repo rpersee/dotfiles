@@ -42,7 +42,6 @@ if ! command -v ansible &>/dev/null; then
     echo "INFO: Installing Ansible to a temporary environment" >&2
     addtemp_ansible || exit 1
     echo "INFO: Ansible installed successfully" >&2
-    # export ANSIBLE_PYTHON_INTERPRETER="$(command -v python)"
     export ANSIBLE_RUN_TAGS="all,ansible"
 fi
 
