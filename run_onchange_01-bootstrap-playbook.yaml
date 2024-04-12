@@ -1,4 +1,5 @@
 #!/usr/bin/env -S "${CHEZMOI_SOURCE_DIR}/ensure_ansible.sh" ansible-playbook -i localhost, -c local -e ansible_python_interpreter="{{ ansible_playbook_python }}"
+# target implicit ‘localhost’ with shebang so the playbook can still run on remote hosts if needed
 ---
 - name: Bootstrap
   hosts: all
@@ -15,17 +16,19 @@
       changed_when: false
       register: _system_python
       tags: [ansible, python]
+    # used hereafter to override Python interpreter when running in a virtual environment
 
     - name: Install pipx
       ansible.builtin.pip:
         name: pipx
         extra_args: --user
       tags: [ansible, python]
-      environment: # manage system Python interpreter
+      environment: # pip may be installed in a venv: manage system Python interpreter
         PIP_PYTHON: "{{ system_python_interpreter }}"
+        # https://pip.pypa.io/en/stable/topics/python-option/#managing-a-different-python-interpreter
 
     - name: With system Python interpreter
-      environment: # make pipx use system Python interpreter
+      environment: # make sure pipx uses system Python interpreter
         PIPX_DEFAULT_PYTHON: "{{ system_python_interpreter }}"
         # check `home` value in ~/.local/share/pipx/shared/pyvenv.cfg
       block:
