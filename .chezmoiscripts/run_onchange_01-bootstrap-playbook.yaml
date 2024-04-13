@@ -1,5 +1,4 @@
-#!/usr/bin/env -S ${CZ_HELPERS}/with-ansible ansible-playbook -i localhost, -c local -e ansible_python_interpreter="{{ ansible_playbook_python }}"
-# target implicit ‘localhost’ with shebang so the playbook can still run on remote hosts if needed
+#!/usr/bin/env -S ${CZ_HELPERS}/with-ansible ansible-playbook
 ---
 - name: Bootstrap
   hosts: all
