@@ -42,7 +42,7 @@
           community.general.pipx:
             name: "{{ item.package | default(item) }}"
             install_deps: "{{ item.include_deps | default(omit) in ['package', true] }}"
-          loop: "{{ python_apps }}"
+          loop: "{{ apps_python }}"
           tags: [python]
 
         - name: Inject Python apps dependencies
@@ -52,7 +52,7 @@
             inject_packages: "{{ item.dependencies }}"
             install_apps: "{{ item.include_apps | default(omit) }}"
             install_deps: "{{ item.include_deps | default(omit) in ['dependencies', true] }}"
-          loop: "{{ python_apps | selectattr('dependencies', 'defined') }}"
+          loop: "{{ apps_python | selectattr('dependencies', 'defined') }}"
           tags: [python]
 
     - name: Determine system architecture
@@ -63,7 +63,7 @@
         ['archives', 'binaries'] | difference(ansible_skip_tags) | length > 0 or
         ['archives', 'binaries'] | intersect(ansible_run_tags) | length > 0
 
-    - name: Install archives
+    - name: Install apps from archives
       ansible.builtin.unarchive:
         remote_src: true
         src: "{{ item.source }}"
@@ -71,7 +71,7 @@
         creates: "{{ ansible_env.HOME }}/.local/bin/{{ item.executable | basename }}"
         include: "{{ item.executable }}"
         extra_opts: "{{ [strip_option] if should_strip else omit }}"
-      loop: "{{ apps_archives }}"
+      loop: "{{ apps_archive }}"
       tags: [archives]
       vars:
         exec_parents: "{{ item.executable.split('/') | length - 1 }}"
@@ -82,10 +82,10 @@
             else '--strip-components=' ~ exec_parents
           }}
 
-    - name: Install binaries
+    - name: Install binary apps
       ansible.builtin.get_url:
         url: "{{ item.source }}"
         dest: "{{ ansible_env.HOME }}/.local/bin/{{ item.executable }}"
         mode: "0755"
-      loop: "{{ apps_binaries }}"
+      loop: "{{ apps_binary }}"
       tags: [binaries]

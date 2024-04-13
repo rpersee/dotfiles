@@ -1,4 +1,5 @@
-python_apps:
+---
+apps_python:
   - package: ansible
     include_deps: package
     dependencies: [ansible-lint, molecule]
@@ -10,19 +11,19 @@ python_apps:
   - mypy
   - yq
 
-helm_version: "3.14.4"
-jq_version: "1.7.1"
-kubectl_version: "{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}"
-terraform_version: "1.8.0"
-
-apps_binaries:
+apps_binary:
   - executable: jq
-    source: https://github.com/jqlang/jq/releases/download/jq-{{ jq_version }}/jq-linux-{{ dpkg_architecture }}
+    source: https://github.com/jqlang/jq/releases/download/jq-{{ version_jq }}/jq-linux-{{ dpkg_architecture }}
   - executable: kubectl
-    source: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/{{ dpkg_architecture }}/kubectl"
+    source: "https://dl.k8s.io/release/{{ version_kubectl }}/bin/linux/{{ dpkg_architecture }}/kubectl"
 
-apps_archives:
+apps_archive:
   - executable: linux-{{ dpkg_architecture }}/helm
-    source: https://get.helm.sh/helm-v{{ helm_version }}-linux-{{ dpkg_architecture }}.tar.gz
+    source: https://get.helm.sh/helm-v{{ version_helm }}-linux-{{ dpkg_architecture }}.tar.gz
   - executable: terraform
-    source: https://releases.hashicorp.com/terraform/{{ terraform_version }}/terraform_{{ terraform_version }}_linux_{{ dpkg_architecture }}.zip
+    source: https://releases.hashicorp.com/terraform/{{ version_terraform }}/terraform_{{ version_terraform }}_linux_{{ dpkg_architecture }}.zip
+
+version_helm: "3.14.4"
+version_jq: "1.7.1"
+version_kubectl: "{{ lookup('url', 'https://dl.k8s.io/release/stable.txt') }}"
+version_terraform: "1.8.0"
