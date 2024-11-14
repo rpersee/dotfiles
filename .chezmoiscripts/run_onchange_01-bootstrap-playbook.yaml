@@ -13,7 +13,7 @@
 
   tasks:
     - name: Discover system Python interpreter
-      ansible.builtin.command: env -i which python3
+      ansible.builtin.command: env -i command -v python3
       changed_when: false
       register: _system_python
       tags: [ansible, python]
