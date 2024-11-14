@@ -2,6 +2,8 @@
 ---
 - name: Bootstrap
   hosts: all
+  gather_facts: true
+  gather_subset: ["env", "!all", "!min"]
   vars:
     dpkg_architecture: "{{ _dpkg_architecture.stdout }}"
     system_python_interpreter: "{{ _system_python.stdout }}"
