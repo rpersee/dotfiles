@@ -3,9 +3,15 @@
 - name: Bootstrap
   hosts: all
   gather_facts: true
-  gather_subset: ["env", "!all", "!min"]
+  gather_subset: ["env", "architecture", "!all", "!min"]
   vars:
-    dpkg_architecture: "{{ _dpkg_architecture.stdout }}"
+    architecture_map:
+      i686: i386
+      x86_64: amd64
+      aarch64: arm64
+      armv6l: armhf
+      armv7l: armhf
+    dpkg_architecture: "{{ architecture_map[ansible_architecture] | default(ansible_architecture) }}"
     system_python_interpreter: "{{ _system_python.stdout }}"
     vars_files_dir: "{{ lookup('env', 'CHEZMOI_SOURCE_DIR') }}/.chezmoidata"
   vars_files:
@@ -56,14 +62,6 @@
             install_deps: "{{ item.include_deps | default(omit) in ['dependencies', true] }}"
           loop: "{{ apps_python | selectattr('dependencies', 'defined') }}"
           tags: [python]
-
-    - name: Determine system architecture
-      ansible.builtin.command: dpkg --print-architecture
-      register: _dpkg_architecture
-      changed_when: false
-      when: >-
-        ['archives', 'binaries'] | difference(ansible_skip_tags) | length > 0 or
-        ['archives', 'binaries'] | intersect(ansible_run_tags) | length > 0
 
     - name: Install apps from archives
       ansible.builtin.unarchive:
