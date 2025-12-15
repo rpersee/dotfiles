@@ -1,0 +1,67 @@
+name: Test chezmoi
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    container: node:20 # debian:bookworm-slim
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python virtual environment
+        run: >-
+          apt-get update && 
+          apt-get install -y python3-venv
+
+      - name: Get chezmoi version
+        id: chezmoi-version
+        run: |
+          release_url="https://api.github.com/repos/twpayne/chezmoi/releases/latest"
+          version=$(curl -fsSL "${release_url}" | grep -oP '"tag_name":\s*"\K[^"]+')
+          echo "version=${version}" >> $GITHUB_OUTPUT
+
+      - name: Cache chezmoi binary
+        uses: actions/cache@v4
+        id: cache-chezmoi
+        with:
+          path: ~/.local/bin/chezmoi
+          key: ${{ runner.os }}-chezmoi-${{ steps.chezmoi-version.outputs.version }}
+          restore-keys: |
+            ${{ runner.os }}-chezmoi-
+
+      - name: Install chezmoi
+        if: steps.cache-chezmoi.outputs.cache-hit != 'true'
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b "$HOME/.local/bin"
+
+      - name: Add chezmoi to PATH
+        run: |
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Initialize chezmoi
+        run: |
+          chezmoi init --source="${GITHUB_WORKSPACE}"
+
+      - name: Run chezmoi diff
+        run: |
+          chezmoi diff --source="${GITHUB_WORKSPACE}"
+
+      - name: Run chezmoi apply (dry-run)
+        run: |
+          chezmoi apply --source="${GITHUB_WORKSPACE}" --dry-run --verbose
+
+      - name: Validate template rendering
+        run: |
+          chezmoi data --source="${GITHUB_WORKSPACE}"
+
+      - name: Run chezmoi apply
+        run: |
+          chezmoi apply --source="${GITHUB_WORKSPACE}"
