@@ -13,9 +13,10 @@
       armv7l: armhf
     dpkg_architecture: "{{ architecture_map[ansible_architecture] | default(ansible_architecture) }}"
     system_python_interpreter: "{{ _system_python.stdout }}"
-    vars_files_dir: "{{ lookup('env', 'CHEZMOI_SOURCE_DIR') }}/.chezmoidata"
-  vars_files:
-    - "{{ vars_files_dir }}/packages.yaml"
+
+    current_pipx_version: "{{ _pipx_version.stdout | default(Undefined, true) }}"
+    pipx_min_version: "1.7.0" # required by community.general.pipx
+    pipx_executable: "{{ _pipx_symlink.dest | default(omit) }}"
 
   tasks:
     - name: Discover system Python interpreter
@@ -25,14 +26,37 @@
       tags: [ansible, python]
     # used hereafter to override Python interpreter when running in a virtual environment
 
-    - name: Install pipx
-      ansible.builtin.pip:
-        name: pipx
-        extra_args: --user
+    - name: Discover existing pipx installation
+      ansible.builtin.command: pipx --version
+      changed_when: false
+      failed_when: false
+      register: _pipx_version
       tags: [ansible, python]
-      environment: # pip may be installed in a venv: manage system Python interpreter
-        PIP_PYTHON: "{{ system_python_interpreter }}"
-        # https://pip.pypa.io/en/stable/topics/python-option/#managing-a-different-python-interpreter
+
+    - name: Ensure pipx is installed
+      when: >-
+        current_pipx_version is not defined or
+        current_pipx_version is version(pipx_min_version, '<')
+      block:
+        - name: Install pipx in a virtualenv
+          ansible.builtin.pip:
+            name: pipx
+            virtualenv: "{{ ansible_env.HOME }}/.local/share/venvs/pipx"
+            virtualenv_command: >-
+              {{ system_python_interpreter }} -m venv
+              --prompt pipx
+              --system-site-packages
+            extra_args: "{{ (current_pipx_version is defined) | ternary('--ignore-installed', omit) }}"
+            # target the system Python interpreter to avoid issues when running in a venv
+          tags: [ansible, python]
+
+        - name: Symlink pipx to ~/.local/bin
+          ansible.builtin.file:
+            src: "{{ ansible_env.HOME }}/.local/share/venvs/pipx/bin/pipx"
+            dest: "{{ ansible_env.HOME }}/.local/bin/pipx"
+            state: link
+          register: _pipx_symlink
+          tags: [ansible, python]
 
     - name: With system Python interpreter
       environment: # make sure pipx uses system Python interpreter
@@ -41,6 +65,7 @@
       block:
         - name: Install Ansible
           community.general.pipx:
+            executable: "{{ pipx_executable }}"
             name: ansible
             install_deps: true
             system_site_packages: true
@@ -48,6 +73,7 @@
 
         - name: Install Python apps with pipx
           community.general.pipx:
+            executable: "{{ pipx_executable }}"
             name: "{{ item.package | default(item) }}"
             install_deps: "{{ item.include_deps | default(omit) in ['package', true] }}"
           loop: "{{ apps_python }}"
@@ -55,6 +81,7 @@
 
         - name: Inject Python apps dependencies
           community.general.pipx:
+            executable: "{{ pipx_executable }}"
             name: "{{ item.package }}"
             state: inject
             inject_packages: "{{ item.dependencies }}"
